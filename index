@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Cutter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        h1 {
+            margin: 20px;
+        }
+        .upload-box {
+            margin: 20px auto;
+            padding: 20px;
+            border: 2px dashed #bbb;
+            background-color: #fff;
+            width: 300px;
+            cursor: pointer;
+        }
+        .upload-box:hover {
+            border-color: #888;
+        }
+        #image-preview {
+            max-width: 90%;
+            margin: 20px auto;
+            display: none;
+        }
+        .cuts-container {
+            margin: 20px auto;
+        }
+        .cut {
+            margin: 10px;
+        }
+        .cut img {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            padding: 5px;
+            background-color: #fff;
+        }
+        .cut a {
+            display: block;
+            margin-top: 5px;
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .cut a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Image Cutter</h1>
+    <div class="upload-box" id="upload-box">
+        Click to upload an image
+    </div>
+    <img id="image-preview" />
+    <div class="cuts-container" id="cuts-container"></div>
+
+    <script>
+        const uploadBox = document.getElementById('upload-box');
+        const imagePreview = document.getElementById('image-preview');
+        const cutsContainer = document.getElementById('cuts-container');
+
+        uploadBox.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.addEventListener('change', handleFileUpload);
+            input.click();
+        });
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    imagePreview.src = img.src;
+                    imagePreview.style.display = 'block';
+                    processImage(img);
+                };
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function processImage(img) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+
+            const width = img.width;
+            const height = img.height;
+
+            // Check width is a multiple of 1500
+            if (width % 1500 !== 0) {
+                alert("The image width must be a multiple of 1500.");
+                return;
+            }
+
+            const numHorizontalCuts = width / 1500;
+            const cutWidth = 1200;
+
+            cutsContainer.innerHTML = ''; // Clear previous cuts
+
+            for (let i = 0; i < numHorizontalCuts; i++) {
+                const left = i * 1500;
+
+                // Horizontal slice
+                for (let v = 0; v < 3; v++) {
+                    let offsetX = 0;
+
+                    if (v === 0) {
+                        // Centered
+                        offsetX = (1500 - cutWidth) / 2;
+                    } else if (v === 1) {
+                        // Left justified
+                        offsetX = 0;
+                    } else if (v === 2) {
+                        // Right justified
+                        offsetX = 1500 - cutWidth;
+                    }
+
+                    canvas.width = cutWidth;
+                    canvas.height = height;
+                    context.clearRect(0, 0, cutWidth, height);
+                    context.drawImage(
+                        img,
+                        left + offsetX, 0, cutWidth, height,
+                        0, 0, cutWidth, height
+                    );
+
+                    // Create downloadable image
+                    const cutDataURL = canvas.toDataURL();
+                    const cutDiv = document.createElement('div');
+                    cutDiv.className = 'cut';
+                    const cutImage = document.createElement('img');
+                    cutImage.src = cutDataURL;
+
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = cutDataURL;
+                    downloadLink.download = `cut_${i + 1}_${v + 1}.png`;
+                    downloadLink.textContent = `Download Cut ${i + 1}-${v + 1}`;
+
+                    cutDiv.appendChild(cutImage);
+                    cutDiv.appendChild(downloadLink);
+                    cutsContainer.appendChild(cutDiv);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
